@@ -1,0 +1,11 @@
+[Unit]
+Description=Discord bot
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/discord-bot/
+ExecStart=docker compose up
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

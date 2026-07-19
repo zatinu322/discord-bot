@@ -1,0 +1,62 @@
+x-environments: &environments
+  env_file:
+    - .env
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: qwerty
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qwerty -d postgres_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    <<: *environments
+    volumes:
+      - ./src:/app/src
+      # - ./libs:/app/libs
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: "uv run src/main.py"
+    networks:
+      - app
+
+  discord-bot-test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    working_dir: /app
+    <<: *environments
+    volumes:
+      - ./src:/app/src
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+    command: "uv run pytest ./src -vv"
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  postgres_data:

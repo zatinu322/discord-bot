@@ -1,0 +1,33 @@
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: editorconfig-checker
+        name: editorconfig-checker
+        entry: uvx --from editorconfig-checker ec ./src
+        language: system
+        pass_filenames: false
+
+      - id: linters-ruff
+        name: ruff
+        entry: uvx ruff check ./src
+        language: system
+        pass_filenames: false
+
+      - id: linters-mypy
+        name: mypy
+        entry: uvx --with pydantic --python 3.12 mypy .
+        language: system
+        pass_filenames: false
+
+      - id: test
+        name: pytest
+        entry: docker compose --profile test run --rm discord-bot-test
+        language: system
+        pass_filenames: false
+

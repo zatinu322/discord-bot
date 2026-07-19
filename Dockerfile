@@ -1,0 +1,25 @@
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+
+ARG BASE_DIR=/app
+WORKDIR ${BASE_DIR}
+
+ENV \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+RUN --mount=type=cache,target=/root/.cache/uv
+COPY ./pyproject.toml ./uv.lock ./alembic.ini ./
+RUN uv sync --frozen
+
+COPY ./src ./src
+# Не выпиливаем из проекта libs, т.к. вероятно оно потребуется для отправки уведомлений.
+# COPY ./libs ./libs
+
+# ENV PATH="${BASE_DIR}/.venv/bin:$PATH" \
+#     PYTHONPATH="${PYTHONPATH}:${BASE_DIR}/src:${BASE_DIR}/libs"
+
+ENTRYPOINT []
+
+CMD ["uv", "run", "python", "src/main.py"]
