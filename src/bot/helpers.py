@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from orm.repository.drunkard import get_drunkard_by_id
+
 if TYPE_CHECKING:
     from discord import Member
     from discord.role import Role
@@ -15,9 +17,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__file__)
 
 
-async def set_role(bot: "Bot", user_id: int, role_id: int) -> None:
+async def set_role(
+    bot: "Bot",
+    user_id: int,
+    role_id: int,
+    resctricted_roles: set[int] | None = None,
+) -> None:
     member = bot.guild.get_member(user_id) or await bot.guild.fetch_member(user_id)
     if not member:
+        return
+
+    restricted_member_roles = ({role.id for role in member.roles}).intersection(resctricted_roles or set())
+    if restricted_member_roles:
+        logger.info(
+            "Unable to set role #%s for member %s. Restricted roles: %s.",
+            role_id,
+            member.display_name,
+            restricted_member_roles,
+        )
         return
 
     if role := bot.guild.get_role(role_id):
@@ -32,13 +49,21 @@ async def remove_role(bot: "Bot", user_id: int, role_id: int) -> None:
 
     if role := bot.guild.get_role(role_id):
         await member.remove_roles(role, reason="ADD_REACTION event")
-        logger.info("Removed role %s to user %s.", role.name, member.display_name)
+        logger.info("Removed role %s from user %s.", role.name, member.display_name)
 
 
-async def schedule_role_remove(user: "Member", role: "Role", mute_seconds: float) -> None:
+async def schedule_sobriety(
+    user: "Member",
+    sober_role: "Role",
+    mute_seconds: float,
+) -> None:
     await asyncio.sleep(mute_seconds)
-    await user.remove_roles(role)
-    logger.info(f'{user.display_name} is now unmuted.')
+    await user.remove_roles(sober_role)
+    logger.info("%s is now sober.", user.display_name)
+    drunkard = await get_drunkard_by_id(user.id)
+    if drunkard:
+        await user.add_roles(*[user.guild.get_role(role_id) for role_id in drunkard.removed_role_ids])
+        logger.info("Set roles %s to user %s", drunkard.removed_role_ids, user.display_name)
 
 
 @dataclass(frozen=True)
@@ -53,7 +78,7 @@ def get_drunk_members(
     drunkards: dict[int, "Drunkard"],
     current_datetime: datetime,
 ) -> list[ScheduledDrunkard]:
-    """Get members that are muted with seconds remained to unmute."""
+    """Get members that are drunk with seconds remained to sobriety."""
     drunk_members = []
 
     for member in all_members:
