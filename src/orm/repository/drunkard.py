@@ -26,6 +26,7 @@ async def add_shot_to_drunkard(
     drunkard_id: int,
     drunk_time: int,
     unmute_date: datetime,
+    removed_role_ids: list[int] | None,
 ) -> None:
     stmt = select(Drunkard).where(Drunkard.id == drunkard_id).with_for_update()
     async with get_atomic_session() as session:
@@ -34,6 +35,7 @@ async def add_shot_to_drunkard(
             shots_count=1,
             drunk_time=drunk_time,
             sobriety_date=unmute_date,
+            removed_role_ids=removed_role_ids or [],
         )
 
         stmt = stmt.on_conflict_do_update(
@@ -42,6 +44,7 @@ async def add_shot_to_drunkard(
                 "shots_count": Drunkard.shots_count + 1,
                 "drunk_time": Drunkard.drunk_time + stmt.excluded.drunk_time,
                 "sobriety_date": stmt.excluded.sobriety_date,
+                "removed_role_ids": stmt.excluded.removed_role_ids,
             },
         )
 

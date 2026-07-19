@@ -54,6 +54,9 @@ class DiscordSettings(BaseSettings):
     CONTENT: DiscordContentSettings
     """Content settings."""
 
+    VIP_ROLE_ID: PositiveInt
+    """ID роли `Проверенный`."""
+
 
 class Config(BaseSettings):
     DISCORD: DiscordSettings

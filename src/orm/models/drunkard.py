@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Integer
+from sqlalchemy import BigInteger, DateTime, Integer, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .._db import Base
@@ -36,6 +37,13 @@ class Drunkard(Base):
         DateTime,
         nullable=True,
         doc="Date of unmute",
+    )
+
+    removed_role_ids: Mapped[list[int]] = mapped_column(
+        ARRAY(BigInteger),
+        nullable=False,
+        default=list,
+        server_default=text('ARRAY[]::bigint[]'),
     )
 
     def __repr__(self):
